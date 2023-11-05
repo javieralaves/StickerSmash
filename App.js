@@ -1,10 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { StyleSheet, Text, View, Image, Platform } from 'react-native';
 import { useState, useRef } from 'react';
 
 import Button from './src/components/Button';
 import { captureRef } from 'react-native-view-shot';
 import CircleButton from './src/components/CircleButton';
+import domtoimage from 'dom-to-image';
 import EmojiList from './src/components/EmojiList';
 import EmojiPicker from './src/components/EmojiPicker';
 import EmojiSticker from './src/components/EmojiSticker';
@@ -40,18 +41,34 @@ export default function App() {
 	};
 
 	const onSaveImageAsync = async () => {
-		try {
-			const localUri = await captureRef(imageRef, {
-				height: 440,
-				quality: 1,
-			});
-
-			await MediaLibrary.saveToLibraryAsync(localUri);
-			if (localUri) {
-				alert('Your picture has been saved!');
+		if (Platform.OS !== 'web') {
+			try {
+				const localUri = await captureRef(imageRef, {
+					height: 440,
+					quality: 1,
+				});
+				await MediaLibrary.saveToLibraryAsync(localUri);
+				if (localUri) {
+					alert('Saved!');
+				}
+			} catch (e) {
+				console.log(e);
 			}
-		} catch (e) {
-			console.log(e);
+		} else {
+			try {
+				const dataUrl = await domtoimage.toJpeg(imageRef.current, {
+					quality: 0.95,
+					width: 320,
+					height: 440,
+				});
+
+				let link = document.createElement('a');
+				link.download = 'sticker-smash.jpeg';
+				link.href = dataUrl;
+				link.click();
+			} catch (e) {
+				console.log(e);
+			}
 		}
 	};
 
@@ -112,7 +129,7 @@ export default function App() {
 			<EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>
 				<EmojiList onSelect={setPickedEmoji} onCloseModal={onModalClose} />
 			</EmojiPicker>
-			<StatusBar style='auto' />
+			<StatusBar style='light' />
 		</GestureHandlerRootView>
 	);
 }
